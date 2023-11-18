@@ -72,7 +72,6 @@ class MainActivity : AppCompatActivity() {
                 val folders = files?.filter { it.isDirectory }?.sortedByDescending { it.lastModified() }?.take(3)
 
                 //stringBuilder.append("获取到的文件夹名称: ${folders?.map { it.name }}\n")
-                //用于测试
 
                 if (folders != null) {
 
