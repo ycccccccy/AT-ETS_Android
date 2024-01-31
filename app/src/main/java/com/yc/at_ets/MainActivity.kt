@@ -19,26 +19,79 @@ import androidx.core.net.toUri
 import androidx.documentfile.provider.DocumentFile
 import org.json.JSONObject
 import java.io.File
+import android.widget.Switch
+import android.content.res.Configuration
+import android.media.MediaPlayer
+import android.view.View
+import android.widget.Toast
+import kotlinx.coroutines.*
+import android.graphics.Color
+import android.content.Context
+import android.content.SharedPreferences
 
+class FirstRunCheck(context: Context) {
+    private val sharedPreferences: SharedPreferences = context.getSharedPreferences("MyApp", Context.MODE_PRIVATE)
+
+    fun isFirstRun(): Boolean {
+        return sharedPreferences.getBoolean("isFirstRun", true)
+    }
+
+    fun setFirstRun() {
+        sharedPreferences.edit().putBoolean("isFirstRun", false).apply()
+    }
+
+    fun isSingleAnswerMode(): Boolean {
+        return sharedPreferences.getBoolean("isSingleAnswerMode", false)
+    }
+
+    fun setSingleAnswerMode(isSingleAnswerMode: Boolean) {
+        sharedPreferences.edit().putBoolean("isSingleAnswerMode", isSingleAnswerMode).apply()
+    }
+}
 
 class MainActivity : AppCompatActivity() {
     private val REQUEST_CODE = 0
-    //var directoryUri =
-        //Uri.parse("content://com.android.externalstorage.documents/document/primary%3AAndroid%2Fdata%2Fcom.ets100.secondary")
-
+    private lateinit var job: Job
     var directoryUri =
         Uri.parse("content://com.android.externalstorage.documents/document/primary%3AAndroid%2Fdata%2Fcom.ets100.secondary%2Ffiles%2FDownload%2FETS_SECONDARY%2Fresource")
+
+
+
+    // 判断颜色是否为亮色
+    private fun isLightColor(color: Int): Boolean {
+        val red = Color.red(color)
+        val green = Color.green(color)
+        val blue = Color.blue(color)
+        val brightness = (red * 299 + green * 587 + blue * 114) / 1000
+        return brightness >= 128
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        val textView = findViewById<TextView>(R.id.textView)
-        val title = findViewById<TextView>(R.id.title)
-        val instruction = findViewById<TextView>(R.id.instruction)
 
-        val buttonC = findViewById<Button>(R.id.buttonC)
-        buttonC.setOnClickListener {
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            // 检查是否开启了深色模式
+            val nightModeFlags = resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK
+            if (nightModeFlags == Configuration.UI_MODE_NIGHT_YES) {
+                // 如果开启了深色模式，设置状态栏颜色为黑色，字体颜色为白色
+                window.statusBarColor = Color.BLACK
+                window.decorView.systemUiVisibility = 0
+            } else {
+                // 如果没有开启深色模式，设置状态栏颜色为白色，字体颜色为黑色
+                window.statusBarColor = Color.WHITE
+                window.decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR
+            }
+        }
+
+
+        val firstRunCheck = FirstRunCheck(this)
+        if (firstRunCheck.isFirstRun()) {
+            // 这是首次运行，显示消息
+            Toast.makeText(this, "欢迎使用，请点击下方授权！", Toast.LENGTH_LONG).show()
+
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                 if (!Environment.isExternalStorageManager()) {
                     val intent = Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION)
@@ -60,7 +113,20 @@ class MainActivity : AppCompatActivity() {
             intent.putExtra(DocumentsContract.EXTRA_INITIAL_URI, directoryUri)
             startActivityForResult(intent, REQUEST_CODE)
 
+            // 设置为非首次运行
+            firstRunCheck.setFirstRun()
         }
+
+        // 读取URI
+        val sharedPreferences = getSharedPreferences("app_prefs", MODE_PRIVATE)
+        val uriString = sharedPreferences.getString("directory_uri", null)
+        if (uriString != null) {
+            directoryUri = Uri.parse(uriString)
+        }
+
+        val textView = findViewById<TextView>(R.id.textView)
+        val title = findViewById<TextView>(R.id.title)
+
         val buttonA = findViewById<Button>(R.id.buttonA)
         buttonA.setOnClickListener {
             if (directoryUri != null) {
@@ -74,31 +140,33 @@ class MainActivity : AppCompatActivity() {
                 //stringBuilder.append("获取到的文件夹名称: ${folders?.map { it.name }}\n")
 
                 if (folders != null) {
-
                     for (folder in folders) {
                         val file = folder.findFile("content.json")
                         if (file != null) {
-                            //stringBuilder.append("读取文件: ${file.uri}\n")
                             try {
                                 val inputStream = contentResolver.openInputStream(file.uri)
                                 val data = JSONObject(inputStream?.bufferedReader().use { it?.readText() })
+                                val switch: Switch = findViewById(R.id.switch_single_answer_mode)
+                                val isSwitchChecked: Boolean = switch.isChecked
                                 if (data.getJSONObject("info").has("question")) {
                                     val questions = data.getJSONObject("info").getJSONArray("question")
                                     for (j in 0 until questions.length()) {
                                         val question = questions.getJSONObject(j)
-                                        stringBuilder.append("问题 ${j + 1} 标准答案:\n")
+                                        stringBuilder.append("角色扮演 ${j + 1} 标准答案:\n")
                                         val answers = question.getJSONArray("std")
                                         for (k in 0 until answers.length()) {
                                             val answer = answers.getJSONObject(k)
                                             stringBuilder.append("${k + 1}. ${answer.getString("value")}\n")
+                                            if (isSwitchChecked) break
                                         }
                                     }
                                 } else {
-                                    stringBuilder.append("标准答案:\n")
+                                    stringBuilder.append("故事复述:\n")
                                     val answers = data.getJSONObject("info").getJSONArray("std")
                                     for (k in 0 until answers.length()) {
                                         val answer = answers.getJSONObject(k)
                                         stringBuilder.append("${k + 1}. ${answer.getString("value")}\n")
+                                        if (isSwitchChecked) break
                                     }
                                 }
                                 stringBuilder.append("\n")
@@ -109,8 +177,8 @@ class MainActivity : AppCompatActivity() {
                     }
                 }
                 title.text = ""
-                instruction.text = ""
                 textView.text = stringBuilder.toString()
+
             }
         }
 
@@ -124,8 +192,18 @@ class MainActivity : AppCompatActivity() {
         super.onActivityResult(requestCode, resultCode, resultData)
 
         if (requestCode == REQUEST_CODE && resultCode == Activity.RESULT_OK) {
-
             directoryUri = resultData?.data
+
+            // 请求一个持久的URI权限授予
+            val takeFlags: Int = Intent.FLAG_GRANT_READ_URI_PERMISSION or
+                    Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+            contentResolver.takePersistableUriPermission(directoryUri!!, takeFlags)
+
+            // 保存URI
+            val sharedPreferences = getSharedPreferences("app_prefs", MODE_PRIVATE)
+            val editor = sharedPreferences.edit()
+            editor.putString("directory_uri", directoryUri.toString())
+            editor.apply()
         }
     }
 }

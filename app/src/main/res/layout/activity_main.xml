@@ -9,10 +9,20 @@
         android:layout_height="0dp"
         android:layout_weight="1">
 
+
+
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical">
+
+            <Switch
+                android:id="@+id/switch_single_answer_mode"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:padding="8dp"
+                android:text="仅显示一个答案" />
+
 
             <TextView
                 android:id="@+id/title"
@@ -33,7 +43,7 @@
                 android:id="@+id/textView"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="目前暂时只能获取最近一次下载的试题的答案，因为需要绕过谷歌的安全限制，每次关闭应用后都需要手动点击一下获取申请一次访问权限(后续会解决)，也就是说下载作业A再下载了B，会导致无法获取A的答案，只能获取B的答案，后续会优化此问题，欢迎大家提供界面修改示例"
+                android:text="点击获取答案以开始，仅展示最新试题的答案"
                 android:lineSpacingExtra="8dp" />
 
             <TextView
@@ -43,17 +53,21 @@
                 android:text=""
                 android:lineSpacingExtra="8dp" />
 
-            <TextView
-                android:id="@+id/instruction"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="点击申请访问权限后会弹出一个新界面，底部可以看到有“使用此文件夹”这个按键，请点击他，然后会有弹窗问你是否允许，点击允许后即可正常使用！"
-                android:lineSpacingExtra="8dp" />
+
+
+
 
         </LinearLayout>
 
     </ScrollView>
 
+
+    <ImageView
+        android:id="@+id/imageView"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:visibility="gone" />
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -65,21 +79,16 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="获取答案用的(当前仅高中)" />
+            android:text="获取答案" />
 
         <Button
             android:id="@+id/buttonB"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="清空那个乱乱的的文本框" />
+            android:text="清空文本框" />
 
-        <Button
-            android:id="@+id/buttonC"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="申请访问权限(闪退请点我)" />
+
 
     </LinearLayout>
 
