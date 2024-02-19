@@ -28,6 +28,9 @@ import kotlinx.coroutines.*
 import android.graphics.Color
 import android.content.Context
 import android.content.SharedPreferences
+import java.util.Date
+import java.text.SimpleDateFormat
+import java.util.Locale
 
 class FirstRunCheck(context: Context) {
     private val sharedPreferences: SharedPreferences = context.getSharedPreferences("MyApp", Context.MODE_PRIVATE)
@@ -140,38 +143,51 @@ class MainActivity : AppCompatActivity() {
                 //stringBuilder.append("获取到的文件夹名称: ${folders?.map { it.name }}\n")
 
                 if (folders != null) {
-                    for (folder in folders) {
-                        val file = folder.findFile("content.json")
-                        if (file != null) {
-                            try {
-                                val inputStream = contentResolver.openInputStream(file.uri)
-                                val data = JSONObject(inputStream?.bufferedReader().use { it?.readText() })
-                                val switch: Switch = findViewById(R.id.switch_single_answer_mode)
-                                val isSwitchChecked: Boolean = switch.isChecked
-                                if (data.getJSONObject("info").has("question")) {
-                                    val questions = data.getJSONObject("info").getJSONArray("question")
-                                    for (j in 0 until questions.length()) {
-                                        val question = questions.getJSONObject(j)
-                                        stringBuilder.append("角色扮演 ${j + 1} 标准答案:\n")
-                                        val answers = question.getJSONArray("std")
+                    if (folders != null) {
+                        for (folder in folders) {
+                            // 显示文件夹的创建时间
+                            val sdf = SimpleDateFormat("yyyy.MM.dd HH:mm:ss", Locale.getDefault())
+                            val creationTime = Date(folder.lastModified())
+                            stringBuilder.append("此小题的下载时间: ${sdf.format(creationTime)}\n")
+
+                            val file = folder.findFile("content.json")
+                            if (file != null) {
+                                try {
+                                    val inputStream = contentResolver.openInputStream(file.uri)
+                                    val data = JSONObject(inputStream?.bufferedReader().use { it?.readText() })
+                                    val switch: Switch = findViewById(R.id.switch_single_answer_mode)
+                                    val isSwitchChecked: Boolean = switch.isChecked
+
+                                    // 角色扮演答案
+                                    if (data.getJSONObject("info").has("question")) {
+                                        val questions = data.getJSONObject("info").getJSONArray("question")
+                                        for (j in 0 until Math.min(questions.length(), 8)) {  // 只显示前8个角色扮演
+                                            val question = questions.getJSONObject(j)
+                                            stringBuilder.append("角色扮演 ${j + 1} 标准答案:\n")
+                                            val answers = question.getJSONArray("std")
+                                            for (k in 0 until answers.length()) {
+                                                val answer = answers.getJSONObject(k)
+                                                stringBuilder.append("${k + 1}. ${answer.getString("value")}\n")
+                                                if (isSwitchChecked) break
+                                            }
+                                        }
+                                    }
+
+                                    // 故事复述答案
+                                    if (data.getJSONObject("info").has("std")) {
+                                        stringBuilder.append("故事复述:\n")
+                                        val answers = data.getJSONObject("info").getJSONArray("std")
                                         for (k in 0 until answers.length()) {
                                             val answer = answers.getJSONObject(k)
                                             stringBuilder.append("${k + 1}. ${answer.getString("value")}\n")
                                             if (isSwitchChecked) break
                                         }
                                     }
-                                } else {
-                                    stringBuilder.append("故事复述:\n")
-                                    val answers = data.getJSONObject("info").getJSONArray("std")
-                                    for (k in 0 until answers.length()) {
-                                        val answer = answers.getJSONObject(k)
-                                        stringBuilder.append("${k + 1}. ${answer.getString("value")}\n")
-                                        if (isSwitchChecked) break
-                                    }
+
+                                    stringBuilder.append("\n")
+                                } catch (e: Exception) {
+                                    //stringBuilder.append("错误: $e\n")
                                 }
-                                stringBuilder.append("\n")
-                            } catch (e: Exception) {
-                                //stringBuilder.append("错误: $e\n")
                             }
                         }
                     }
