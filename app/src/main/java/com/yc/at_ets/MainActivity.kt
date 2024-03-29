@@ -140,12 +140,20 @@ class MainActivity : AppCompatActivity() {
                 val files = directory?.listFiles()
                 val folders = files?.filter { it.isDirectory }?.sortedByDescending { it.lastModified() }?.take(3)
 
-                //stringBuilder.append("获取到的文件夹名称: ${folders?.map { it.name }}\n")
+                fun removeHtmlTags(text: String): String {
+                    return text.replace(Regex("<.*?>"), "")
+                }
 
-                if (folders != null) {
+                if (directoryUri != null) {
+                    val stringBuilder = StringBuilder()
+                    stringBuilder.append("开始尝试获取：\n")
+
+                    val directory = DocumentFile.fromTreeUri(this, directoryUri!!)
+                    val files = directory?.listFiles()
+                    val folders = files?.filter { it.isDirectory }?.sortedByDescending { it.lastModified() }?.take(3)
+
                     if (folders != null) {
                         for (folder in folders) {
-                            // 显示文件夹的创建时间
                             val sdf = SimpleDateFormat("yyyy.MM.dd HH:mm:ss", Locale.getDefault())
                             val creationTime = Date(folder.lastModified())
                             stringBuilder.append("此小题的下载时间: ${sdf.format(creationTime)}\n")
@@ -158,35 +166,37 @@ class MainActivity : AppCompatActivity() {
                                     val switch: Switch = findViewById(R.id.switch_single_answer_mode)
                                     val isSwitchChecked: Boolean = switch.isChecked
 
-                                    // 角色扮演答案
                                     if (data.getJSONObject("info").has("question")) {
                                         val questions = data.getJSONObject("info").getJSONArray("question")
-                                        for (j in 0 until Math.min(questions.length(), 8)) {  // 只显示前8个角色扮演
+                                        for (j in 0 until Math.min(questions.length(), 8)) {
                                             val question = questions.getJSONObject(j)
-                                            stringBuilder.append("角色扮演 ${j + 1} 标准答案:\n")
+                                            stringBuilder.append("角色扮演 ${j + 1} :\n")
                                             val answers = question.getJSONArray("std")
                                             for (k in 0 until answers.length()) {
                                                 val answer = answers.getJSONObject(k)
-                                                stringBuilder.append("${k + 1}. ${answer.getString("value")}\n")
+                                                val answerText = answer.getString("value")
+                                                val plainText = removeHtmlTags(answerText)
+                                                stringBuilder.append("${k + 1}. $plainText\n")
                                                 if (isSwitchChecked) break
                                             }
                                         }
                                     }
 
-                                    // 故事复述答案
                                     if (data.getJSONObject("info").has("std")) {
                                         stringBuilder.append("故事复述:\n")
                                         val answers = data.getJSONObject("info").getJSONArray("std")
                                         for (k in 0 until answers.length()) {
                                             val answer = answers.getJSONObject(k)
-                                            stringBuilder.append("${k + 1}. ${answer.getString("value")}\n")
+                                            val answerText = answer.getString("value")
+                                            val plainText = removeHtmlTags(answerText)
+                                            stringBuilder.append("${k + 1}. $plainText\n")
                                             if (isSwitchChecked) break
                                         }
                                     }
 
                                     stringBuilder.append("\n")
                                 } catch (e: Exception) {
-                                    //stringBuilder.append("错误: $e\n")
+                                    stringBuilder.append("错误: $e\n")
                                 }
                             }
                         }
