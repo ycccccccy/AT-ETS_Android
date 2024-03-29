@@ -1,6 +1,7 @@
 package com.yc.at_ets
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.content.Intent
 import android.app.Activity
 import android.content.pm.PackageManager
@@ -31,6 +32,9 @@ import android.content.SharedPreferences
 import java.util.Date
 import java.text.SimpleDateFormat
 import java.util.Locale
+import android.os.AsyncTask
+import org.jsoup.Jsoup
+import java.net.URL
 
 class FirstRunCheck(context: Context) {
     private val sharedPreferences: SharedPreferences = context.getSharedPreferences("MyApp", Context.MODE_PRIVATE)
@@ -130,6 +134,31 @@ class MainActivity : AppCompatActivity() {
         val textView = findViewById<TextView>(R.id.textView)
         val title = findViewById<TextView>(R.id.title)
 
+        // 启动协程来获取版本信息
+        GlobalScope.launch(Dispatchers.IO) {
+            try {
+                title.text = "正在检查更新"
+                val doc = Jsoup.parse(URL("https://ycccccccy.github.io/app-versioncheck/"), 30000)
+                val versionElement = doc.getElementById("FKETS-android-version")
+                val version = versionElement?.text() ?: "未找到版本信息"
+
+                withContext(Dispatchers.Main) {
+                    // 检查版本信息
+                    val localVersion = "1.0.4"
+                    if (localVersion != version) {
+                        // 提示用户更新
+                        textView.text = "已有更新版本，请更新！！！"
+                    }
+                    if (localVersion == version) {
+                        // 提示用户更新
+                        textView.text = "已是最新版本"
+                    }
+                }
+            } catch (e: Exception) {
+                // 处理异常
+            }
+        }
+
         val buttonA = findViewById<Button>(R.id.buttonA)
         buttonA.setOnClickListener {
             if (directoryUri != null) {
@@ -213,6 +242,9 @@ class MainActivity : AppCompatActivity() {
             textView.text = ""
         }
     }
+
+
+
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, resultData: Intent?) {
         super.onActivityResult(requestCode, resultCode, resultData)
